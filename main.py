@@ -1,18 +1,26 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from llama_cpp import Llama
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
-app = FastAPI(title="Box Office Analysis")
+MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.2"
 
-llm = Llama(
-    model_path="models/mistral-7b-instruct-v0.2.Q4_K_M.gguf",
-    n_ctx=4096,
-    n_threads=8,
-    n_batch=512,
-    temperature=0.4,
-    repeat_penalty=1.1,
-    verbose=False,
+tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_compute_dtype=torch.float16,
+    bnb_4bit_quant_type="nf4"
 )
+
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_ID,
+    device_map="auto",
+    quantization_config=bnb_config,
+    dtype=torch.float16
+)
+
+app = FastAPI()
 
 class MovieRequest(BaseModel):
     title: str
@@ -20,45 +28,41 @@ class MovieRequest(BaseModel):
     box_office: float
     franchise: bool
 
-def classify_performance(budget, box_office):
-    ratio = box_office / budget
-    if ratio >= 2.5:
-        return "Hit"
-    if ratio >= 1.5:
-        return "Moderate Success"
-    if ratio >= 1.0:
-        return "Break-even"
-    return "Underperformed"
-
-def build_prompt(data: MovieRequest, performance: str) -> str:
+def build_prompt(data, performance):
     return f"""[INST]
 You are a film industry analyst.
 
 Movie: {data.title}
-Production Budget: ${data.budget} million
-Worldwide Box Office: ${data.box_office} million
+Budget: ${data.budget}M
+Box Office: ${data.box_office}M
 Performance: {performance}
-Franchise Film: {"Yes" if data.franchise else "No"}
+Franchise: {"Yes" if data.franchise else "No"}
 
-Provide 3 reasons explaining why the movie performed the way it did.
-
-Be concise and realistic. Do not invent specific events or numbers.
+Provide three reasons to explain why the movie performed the way it did.
+Be concise and realistic.
 [/INST]
 """
 
 @app.post("/analyze")
-def analyze_movie(data: MovieRequest):
-    performance = classify_performance(data.budget, data.box_office)
-    prompt = build_prompt(data, performance)
-
-    output = llm(
-        prompt,
-        max_tokens=300,
-        stop=["</s>"]
+def analyze(data: MovieRequest):
+    ratio = data.box_office / data.budget
+    performance = (
+        "Hit" if ratio >= 2.5 else
+        "Moderate Success" if ratio >= 1.5 else
+        "Break-even" if ratio >= 1.0 else
+        "Underperformed"
     )
 
-    return {
-        "movie": data.title,
-        "performance": performance,
-        "analysis": output["choices"][0]["text"].strip()
-    }
+    prompt = build_prompt(data, performance)
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+
+    with torch.no_grad():
+        output = model.generate(
+            **inputs,
+            max_new_tokens=300,
+            temperature=0.4,
+            do_sample=True
+        )
+
+    text = tokenizer.decode(output[0], skip_special_tokens=True)
+    return {"analysis": text}
