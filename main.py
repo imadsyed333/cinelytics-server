@@ -26,17 +26,15 @@ class MovieRequest(BaseModel):
     title: str
     budget: float
     box_office: float
-    franchise: bool
 
 def build_prompt(data, performance):
     return f"""[INST]
 You are a film industry analyst.
 
 Movie: {data.title}
-Budget: ${data.budget}M
-Box Office: ${data.box_office}M
+Budget: ${data.budget}
+Box Office: ${data.box_office}
 Performance: {performance}
-Franchise: {"Yes" if data.franchise else "No"}
 
 Provide three reasons to explain why the movie performed the way it did.
 Be concise and realistic.
@@ -61,8 +59,7 @@ def analyze(data: MovieRequest):
             **inputs,
             max_new_tokens=300,
             temperature=0.4,
-            do_sample=True
         )
 
-    text = tokenizer.decode(output[0], skip_special_tokens=True)
-    return {"analysis": text}
+    raw_text = tokenizer.decode(output[0], skip_special_tokens=True)
+    return {"analysis": raw_text}
