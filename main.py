@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from fastapi.middleware.cors import CORSMiddleware
 
 MODEL_ID = "microsoft/Phi-3-mini-4k-instruct"
 
@@ -22,6 +23,18 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,      # or ["*"] for testing only
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class MovieRequest(BaseModel):
     title: str
