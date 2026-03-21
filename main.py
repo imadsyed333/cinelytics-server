@@ -78,6 +78,8 @@ def analyze(data: MovieRequest):
             max_new_tokens=500,
             temperature=0.4,
         )
+    
+    generated_tokens = output[0][inputs.input_ids.shape[-1]:]
 
-    raw_text = tokenizer.decode(output[0], skip_special_tokens=True)
-    return {"analysis": raw_text}
+    response = tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
+    return {"analysis": response}
