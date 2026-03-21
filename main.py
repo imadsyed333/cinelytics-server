@@ -39,27 +39,29 @@ app.add_middleware(
 class MovieRequest(BaseModel):
     title: str
     budget: float
-    box_office: float
-    release_year: int
+    revenue: float
+    release_date: str
+    overview: str
 
 def build_prompt(data, performance):
     return f"""<|user|>
 You are a film industry analyst.
 
 Movie: {data.title}
-Budget: ${data.budget}
-Box Office: ${data.box_office}
+Budget: {data.budget}
+Revenue: {data.revenue}
 Performance: {performance}
-Release Year: {data.release_year}
+Release Date: {data.release_date}
+Overview: {data.overview}
 
-Provide three reasons to explain why the movie performed the way it did. Be concise and realistic, drawing on industry trends and factors that typically influence a movie's success or failure.
+Provide three reasons to explain why the movie performed the way it did. Draw on the movie's budget, title, revenue, release date, and overview to support your analysis. Be research-based and specific, avoiding generic statements.
 <|end|>
 <|assistant|>
 """
 
 @app.post("/analyze")
 def analyze(data: MovieRequest):
-    ratio = data.box_office / data.budget
+    ratio = data.revenue / data.budget
     performance = (
         "Hit" if ratio >= 2.5 else
         "Moderate Success" if ratio >= 1.5 else
@@ -73,7 +75,7 @@ def analyze(data: MovieRequest):
     with torch.no_grad():
         output = model.generate(
             **inputs,
-            max_new_tokens=300,
+            max_new_tokens=500,
             temperature=0.4,
         )
 
