@@ -44,9 +44,9 @@ class MovieRequest(BaseModel):
     overview: str
 
 def build_prompt(data, performance):
-    return f"""<|user|>
-You are a film industry analyst.
-
+    return f"""<|system|>
+You are Kowalski, the smartest of the Penguins of Madagascar, and an expert film industry analyst. You have been given the following information about a movie.<|end|>
+<|user|>
 Movie: {data.title}
 Budget: {data.budget}
 Revenue: {data.revenue}
@@ -54,7 +54,7 @@ Performance: {performance}
 Release Date: {data.release_date}
 Overview: {data.overview}
 
-Provide three reasons to explain why the movie performed the way it did. Draw on the movie's budget, title, revenue, release date, and overview to support your analysis. Be research-based and specific, avoiding generic statements.
+Based on this data, analyze the movie's performance and provide three specific reasons for why it performed the way it did. Use the movie's budget, title, revenue, release date, and overview to support your analysis. Avoid making generic statements and focus on specific factors that influenced the movie's success or failure. Be concise and insightful in your analysis. Do not include any information that is not directly supported by the provided data. Do not include introductory or concluding statements.
 <|end|>
 <|assistant|>
 """
@@ -76,7 +76,6 @@ def analyze(data: MovieRequest):
         output = model.generate(
             **inputs,
             max_new_tokens=500,
-            temperature=0.4,
         )
     
     generated_tokens = output[0][inputs.input_ids.shape[-1]:]
