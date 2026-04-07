@@ -1,8 +1,9 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from fastapi.middleware.cors import CORSMiddleware
+
+from utils import build_prompt, fetch_movie_data
 
 MODEL_ID = "microsoft/Phi-3-mini-4k-instruct"
 
@@ -30,46 +31,18 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,      # or ["*"] for testing only
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class MovieRequest(BaseModel):
-    title: str
-    budget: float
-    revenue: float
-    release_date: str
-    overview: str
 
-def build_prompt(data, performance):
-    return f"""<|system|>
-You are Kowalski, the smartest of the Penguins of Madagascar, and an expert film industry analyst. You have been given the following information about a movie.<|end|>
-<|user|>
-Movie: {data.title}
-Budget: {data.budget}
-Revenue: {data.revenue}
-Performance: {performance}
-Release Date: {data.release_date}
-Overview: {data.overview}
+@app.get("/analyze/{movie_id}")
+def analyze(movie_id: int):
+    movie_data = fetch_movie_data(movie_id)
 
-Based on this data, analyze the movie's performance and provide three specific reasons for why it performed the way it did. Use the movie's budget, title, revenue, release date, and overview to support your analysis. Avoid making generic statements and focus on specific factors that influenced the movie's success or failure. Be concise and insightful in your analysis. Do not include any information that is not directly supported by the provided data. Do not include introductory or concluding statements.
-<|end|>
-<|assistant|>
-"""
-
-@app.post("/analyze")
-def analyze(data: MovieRequest):
-    ratio = data.revenue / data.budget
-    performance = (
-        "Hit" if ratio >= 2.5 else
-        "Moderate Success" if ratio >= 1.5 else
-        "Break-even" if ratio >= 1.0 else
-        "Underperformed"
-    )
-
-    prompt = build_prompt(data, performance)
+    prompt = build_prompt(movie_data)
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
     with torch.no_grad():
