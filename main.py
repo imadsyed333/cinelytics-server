@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, pipeline
+from langchain_huggingface import HuggingFacePipeline
 from fastapi.middleware.cors import CORSMiddleware
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
-from utils import build_prompt, fetch_movie_data
+from utils import describe_performance, fetch_movie_data, system_prompt
 
-MODEL_ID = "microsoft/Phi-3-mini-4k-instruct"
+MODEL_ID = "google/gemma-4-E2B-it"
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 
@@ -18,10 +21,30 @@ bnb_config = BitsAndBytesConfig(
 
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_ID,
-    device_map="auto",
+    device_map={"": 0},
     quantization_config=bnb_config,
-    dtype=torch.float16
 )
+
+pipe = pipeline(
+    "text-generation",
+    model=model,
+    tokenizer=tokenizer,
+    max_new_tokens=500,
+    return_full_text=False,
+)
+
+llm = HuggingFacePipeline(pipeline=pipe)
+
+prompt_template = PromptTemplate.from_template(
+    "<|turn>system\n{system_prompt}<turn|>\n"
+    "<|turn>user\nThe following is the data for a movie:\n\n{movie_json}\n\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, analyze the movie's performance and provide three specific reasons for why it performed the way it did. Use all available information and avoid making generic statements.<turn|>\n"
+    "<|turn>model\n"
+)
+
+parser = StrOutputParser()
+
+chain = prompt_template | llm | parser
+
 
 app = FastAPI()
 
@@ -42,16 +65,12 @@ app.add_middleware(
 def analyze(movie_id: int):
     movie_data = fetch_movie_data(movie_id)
 
-    prompt = build_prompt(movie_data)
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+    print(movie_data)
 
-    with torch.no_grad():
-        output = model.generate(
-            **inputs,
-            max_new_tokens=500,
-        )
-    
-    generated_tokens = output[0][inputs.input_ids.shape[-1]:]
-
-    response = tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
+    performance = describe_performance(movie_data.revenue, movie_data.budget)
+    response = chain.invoke({
+        "system_prompt": system_prompt,
+        "movie_json": movie_data.model_dump_json(),
+        "performance": performance,
+    })
     return {"analysis": response}
