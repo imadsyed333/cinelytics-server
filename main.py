@@ -8,7 +8,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 from utils import describe_performance, fetch_movie_data, system_prompt
 
-MODEL_ID = "google/gemma-4-E2B-it"
+MODEL_ID = "microsoft/Phi-3-mini-4k-instruct"
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 
@@ -31,20 +31,22 @@ pipe = pipeline(
     tokenizer=tokenizer,
     max_new_tokens=500,
     return_full_text=False,
+    do_sample=False,
+    temperature=0.0,
+    repetition_penalty=1.0,
 )
 
 llm = HuggingFacePipeline(pipeline=pipe)
 
 prompt_template = PromptTemplate.from_template(
-    "<|turn>system\n{system_prompt}<turn|>\n"
-    "<|turn>user\nThe following is the data for a movie:\n\n{movie_json}\n\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, analyze the movie's performance and provide three specific reasons for why it performed the way it did. Use all available information and avoid making generic statements.<turn|>\n"
-    "<|turn>model\n"
+    "<|system|>\n{system_prompt}<|end|>\n"
+    "<|user|>\nThe following is the data for a movie:\n\n{movie_json}\n\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, provide specific reasons for why it performed the way it did. Use all available information and avoid making generic statements.<|end|>\n"
+    "<|assistant|>\n"
 )
 
 parser = StrOutputParser()
 
 chain = prompt_template | llm | parser
-
 
 app = FastAPI()
 
@@ -64,8 +66,6 @@ app.add_middleware(
 @app.get("/analyze/{movie_id}")
 def analyze(movie_id: int):
     movie_data = fetch_movie_data(movie_id)
-
-    print(movie_data)
 
     performance = describe_performance(movie_data.revenue, movie_data.budget)
     response = chain.invoke({
