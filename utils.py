@@ -17,13 +17,12 @@ def fetch_movie_data(movie_id: int) -> MovieData:
         raise Exception(f"Failed to fetch movie data: {response.status_code} - {response.text}")
     
     data = response.json()
-    print(f"Fetched movie data: {data}")
     return parse_movie_data(data)
 
 def parse_movie_data(data: dict) -> MovieData:
     return MovieData(
         title=data.get("title", ""),
-        release_year=data.get("release_year", 0),
+        release_date=data.get("release_date", ""),
         budget=data.get("budget", 0),
         revenue=data.get("revenue", 0),
         overview=data.get("overview", ""),
