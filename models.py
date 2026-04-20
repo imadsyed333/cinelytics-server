@@ -2,8 +2,8 @@ from pydantic import BaseModel
 
 class MovieData(BaseModel):
     title: str
-    release_year: int
-    genre: str
+    release_date: str
     budget: float
     revenue: float
+    rating: float
     overview: str
