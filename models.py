@@ -5,4 +5,5 @@ class MovieData(BaseModel):
     release_date: str
     budget: float
     revenue: float
+    rating: float
     overview: str
