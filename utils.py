@@ -1,7 +1,7 @@
 import requests
 from dotenv import load_dotenv
 import os
-from models import MovieData
+from models import MovieData, MovieReview
 
 load_dotenv()
 
@@ -28,6 +28,29 @@ def parse_movie_data(data: dict) -> MovieData:
         revenue=data.get("revenue", 0),
         overview=data.get("overview", ""),
     )
+
+def fetch_reviews(movie_id: int) -> list[MovieReview]:
+    response = requests.get(f"{API_URL}/movie/{movie_id}/reviews", headers={"Authorization": f"Bearer {API_KEY}"})
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch reviews: {response.status_code} - {response.text}")
+    data = response.json()
+    return parse_reviews(data.get("results", []))
+
+def parse_reviews(data: list) -> list[MovieReview]:
+    reviews = []
+    for item in data:
+        reviews.append(MovieReview(
+            id=item.get("id", ""),
+            author=item.get("author", ""),
+            content=item.get("content", ""),
+        ))
+    return reviews
+
+def stringify_reviews(reviews: list[MovieReview]) -> str:
+    review_str = ""
+    for review in reviews[:min(5, len(reviews))]:  # Limit to first 5 reviews for brevity
+        review_str += f"Review by {review.author}:\n{review.content}\n\n"
+    return review_str.strip()
 
 def describe_performance(revenue: int, budget: int) -> str:
     if budget == 0:
