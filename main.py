@@ -32,15 +32,13 @@ pipe = pipeline(
     max_new_tokens=500,
     return_full_text=False,
     do_sample=False,
-    temperature=0.0,
-    repetition_penalty=1.0,
 )
 
 llm = HuggingFacePipeline(pipeline=pipe)
 
 prompt_template = PromptTemplate.from_template(
     "<|system|>\n{system_prompt}<|end|>\n"
-    "<|user|>\nThe following is the data for a movie:\n\n{movie_json}\n\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, provide specific reasons for why it performed the way it did. Use all available information and avoid making generic statements.<|end|>\n"
+    "<|user|>\nThe movie {title} ({release_date}) has a budget of ${budget} and generated a revenue of ${revenue}. It has a rating of {rating}/10. A brief overview of the movie: {overview}\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, can you provide me three specific reasons to explain the movie's performance? And why it received its rating?\n<|end|>\n"
     "<|assistant|>\n"
 )
 
@@ -70,7 +68,12 @@ def analyze(movie_id: int):
     performance = describe_performance(movie_data.revenue, movie_data.budget)
     response = chain.invoke({
         "system_prompt": system_prompt,
-        "movie_json": movie_data.model_dump_json(),
+        "title": movie_data.title,
+        "release_date": movie_data.release_date,
+        "budget": movie_data.budget,
+        "revenue": movie_data.revenue,
+        "rating": movie_data.rating,
+        "overview": movie_data.overview,
         "performance": performance,
     })
     return {"analysis": response}
