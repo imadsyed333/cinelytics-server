@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-from utils import describe_performance, fetch_movie_data, system_prompt
+from utils import describe_performance, fetch_movie_data, fetch_reviews, stringify_reviews, system_prompt
 
 MODEL_ID = "microsoft/Phi-3-mini-4k-instruct"
 
@@ -36,15 +36,22 @@ pipe = pipeline(
 
 llm = HuggingFacePipeline(pipeline=pipe)
 
-prompt_template = PromptTemplate.from_template(
+review_prompt = PromptTemplate.from_template(
+    "<|user|>\nHere are some reviews for a movie:\n{reviews}\nI want you to provide me with a concise summary of the overall sentiment and key points mentioned in these reviews.\n<|end|>\n"
+    "<|assistant|>\n"
+)
+
+analysis_prompt = PromptTemplate.from_template(
     "<|system|>\n{system_prompt}<|end|>\n"
-    "<|user|>\nThe movie {title} ({release_date}) has a budget of ${budget} and generated a revenue of ${revenue}. It has a rating of {rating}/10. A brief overview of the movie: {overview}\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, can you provide me three specific reasons to explain the movie's performance? And why it received its rating?\n<|end|>\n"
+    "<|user|>\nThe movie {title} ({release_date}) has a budget of ${budget} and generated a revenue of ${revenue}. It has a rating of {rating}/10. A brief overview of the movie: {overview}\nThe audience's sentiment based on reviews is: {sentiment}\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, can you provide me three specific reasons to explain the movie's performance? And why it received its rating?\n<|end|>\n"
     "<|assistant|>\n"
 )
 
 parser = StrOutputParser()
 
-chain = prompt_template | llm | parser
+review_chain = review_prompt | llm | parser
+
+analysis_chain = analysis_prompt | llm | parser
 
 app = FastAPI()
 
@@ -65,8 +72,13 @@ app.add_middleware(
 def analyze(movie_id: int):
     movie_data = fetch_movie_data(movie_id)
 
+    movie_reviews = fetch_reviews(movie_id)
+    reviews_str = stringify_reviews(movie_reviews)
+
     performance = describe_performance(movie_data.revenue, movie_data.budget)
-    response = chain.invoke({
+    sentiment = review_chain.invoke({"reviews": reviews_str})
+    response = analysis_chain.invoke({
+        "reviews": reviews_str,
         "system_prompt": system_prompt,
         "title": movie_data.title,
         "release_date": movie_data.release_date,
@@ -75,5 +87,6 @@ def analyze(movie_id: int):
         "rating": movie_data.rating,
         "overview": movie_data.overview,
         "performance": performance,
+        "sentiment": sentiment,
     })
     return {"analysis": response}
