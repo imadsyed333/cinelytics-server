@@ -24,6 +24,7 @@ def parse_movie_data(data: dict) -> MovieData:
         title=data.get("title", ""),
         release_date=data.get("release_date", ""),
         budget=data.get("budget", 0),
+        rating=data.get("vote_average", 0.0),
         revenue=data.get("revenue", 0),
         overview=data.get("overview", ""),
     )
@@ -33,11 +34,11 @@ def describe_performance(revenue: int, budget: int) -> str:
         return "Unknown"
     
     ratio = revenue / budget
-    if ratio >= 2.5:
+    if ratio >= 3.0:
         return "Hit"
-    elif ratio >= 1.5:
+    elif ratio >= 2.0:
         return "Moderate Success"
-    elif ratio >= 1.0:
+    elif ratio >= 1.5:
         return "Break-even"
     else:
         return "Underperformed"
