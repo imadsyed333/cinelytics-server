@@ -7,3 +7,8 @@ class MovieData(BaseModel):
     revenue: float
     rating: float
     overview: str
+
+class MovieReview(BaseModel):
+    id: str
+    author: str
+    content: str
