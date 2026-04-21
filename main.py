@@ -43,7 +43,7 @@ review_prompt = PromptTemplate.from_template(
 
 analysis_prompt = PromptTemplate.from_template(
     "<|system|>\n{system_prompt}<|end|>\n"
-    "<|user|>\nThe movie {title} ({release_date}) has a budget of ${budget} and generated a revenue of ${revenue}. It has a rating of {rating}/10. A brief overview of the movie: {overview}\nThe audience's sentiment based on reviews is: {sentiment}\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, can you provide me three specific reasons to explain the movie's performance? And why it received its rating?\n<|end|>\n"
+    "<|user|>\nThe movie {title} ({release_date}) has a budget of ${budget} and generated a revenue of ${revenue}. It has a rating of {rating}/10. A brief overview of the movie: {overview}\nThe audience's sentiment based on reviews is: {sentiment}\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, can you provide me three specific reasons to explain the movie's box office performance?\n<|end|>\n"
     "<|assistant|>\n"
 )
 
