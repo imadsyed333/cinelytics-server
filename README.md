@@ -2,6 +2,8 @@
 
 Cinelytics Server is a FastAPI-based backend service that leverages advanced language models to analyze and explain the box office performance of movies. It integrates with the HuggingFace Transformers library and LangChain to provide insightful, data-driven explanations for why a movie succeeded or failed financially, based on real movie data.
 
+Code for the Next.js frontend can be found [here](https://github.com/imadsyed333/cinelytics).
+
 ## Features
 
 - **Movie Data Fetching:** Retrieves movie data (title, release date, budget, revenue, overview) from the TMDB API.
