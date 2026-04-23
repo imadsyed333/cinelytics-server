@@ -8,7 +8,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 from utils import describe_performance, fetch_movie_data, fetch_reviews, stringify_reviews, system_prompt
 
-MODEL_ID = "microsoft/Phi-3-mini-4k-instruct"
+MODEL_ID = "Qwen/Qwen2.5-1.5B-Instruct"
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 
@@ -37,14 +37,14 @@ pipe = pipeline(
 llm = HuggingFacePipeline(pipeline=pipe)
 
 review_prompt = PromptTemplate.from_template(
-    "<|user|>\nHere are some reviews for a movie:\n{reviews}\nI want you to provide me with a concise summary of the overall sentiment and key points mentioned in these reviews.\n<|end|>\n"
-    "<|assistant|>\n"
+    "<|im_start|>user\nHere are some reviews for a movie:\n{reviews}\nI want you to provide me with a concise summary of the overall sentiment and key points mentioned in these reviews.\n<|im_end|>\n"
+    "<|im_start|>assistant\n"
 )
 
 analysis_prompt = PromptTemplate.from_template(
-    "<|system|>\n{system_prompt}<|end|>\n"
-    "<|user|>\nThe movie {title} ({release_date}) has a budget of ${budget} and generated a revenue of ${revenue}. It has a rating of {rating}/10. A brief overview of the movie: {overview}\nThe audience's sentiment based on reviews is: {sentiment}\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, can you provide me three specific reasons to explain the movie's box office performance?\n<|end|>\n"
-    "<|assistant|>\n"
+    "<|im_start|>system\n{system_prompt}<|im_end|>\n"
+    "<|im_start|>user\nThe movie {title} ({release_date}) has a budget of ${budget} and generated a revenue of ${revenue}. It has a rating of {rating}/10. A brief overview of the movie: {overview}\nThe audience's sentiment based on reviews is: {sentiment}\nThe movie's performance is categorized as: {performance}.\n\nBased on this data, can you provide me three specific reasons to explain the movie's box office performance?\n<|im_end|>\n"
+    "<|im_start|>assistant\n"
 )
 
 parser = StrOutputParser()
