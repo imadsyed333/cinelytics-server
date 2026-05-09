@@ -8,7 +8,7 @@ import time
 from models import AnalysisResponse
 from utils import describe_performance, fetch_movie_data, fetch_reviews, stringify_reviews, system_prompt
 
-model = ChatOllama(model="qwen3.5:4b", temperature=0, validate_model_on_init=True, max_tokens=128, reasoning=False)
+model = ChatOllama(model="qwen3.5:4b", temperature=0, validate_model_on_init=True, max_tokens=128, reasoning=False, keep_alive="1h")
 
 analysis_parser = PydanticOutputParser(pydantic_object=AnalysisResponse)
 
