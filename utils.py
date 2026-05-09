@@ -75,10 +75,10 @@ def describe_performance(revenue: int, budget: int) -> str:
     
     ratio = revenue / budget
     if ratio >= 3.0:
-        return "Hit"
+        return "was a hit"
     elif ratio >= 2.0:
-        return "Moderate Success"
+        return "was a moderate success"
     elif ratio >= 1.5:
-        return "Break-even"
+        return "broke-even"
     else:
-        return "Underperformed"
+        return "underperformed"
