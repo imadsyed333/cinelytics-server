@@ -8,7 +8,9 @@ import time
 from models import AnalysisResponse
 from utils import describe_performance, fetch_movie_data, fetch_reviews, stringify_reviews, system_prompt
 
-model = ChatOllama(model="qwen3.5:4b", temperature=0, validate_model_on_init=True, max_tokens=128, reasoning=False, keep_alive="1h")
+reviewer = ChatOllama(model="qwen3.5:0.8b", temperature=0, validate_model_on_init=True, max_tokens=128, reasoning=False, keep_alive="1h")
+
+analyzer = ChatOllama(model="qwen3.5:4b", temperature=0, validate_model_on_init=True, max_tokens=128, reasoning=False, keep_alive="1h")
 
 analysis_parser = PydanticOutputParser(pydantic_object=AnalysisResponse)
 
@@ -18,16 +20,16 @@ review_prompt = PromptTemplate.from_template(
 
 analysis_prompt = PromptTemplate.from_template(
     "{system_prompt}\n"
-    "The movie {title} ({release_date}) had a budget of ${budget}, generated ${revenue} in revenue, and received a rating of {rating}/10. Here's a brief overview of the movie: {overview}\n\nThe audience's sentiment based on reviews is: {sentiment}\n\nBased on this information, provide exactly three specific reasons to explain why the movie {performance} at the box office.\n\n"
+    "The movie {title} ({release_date}) had a budget of ${budget}, generated ${revenue} in revenue, and received a rating of {rating}/10. Here's a brief overview of the movie: {overview}\n\n{sentiment}\n\nBased on this information, provide specific reasons to explain why the movie {performance} at the box office.\n\n"
     "Return ONLY valid JSON matching this schema. Do not return markdown, numbering, or extra text.\n"
     "{format_instructions}"
 )
 
 parser = StrOutputParser()
 
-review_chain = review_prompt | model | parser
+review_chain = review_prompt | reviewer | parser
 
-analysis_chain = analysis_prompt | model | analysis_parser
+analysis_chain = analysis_prompt | analyzer | analysis_parser
 
 app = FastAPI()
 
