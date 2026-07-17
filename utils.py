@@ -7,20 +7,35 @@ load_dotenv()
 
 system_prompt = """You are a film industry analyst specializing in box office performance.
 
-Your task is to analyze structured movie data and explain the movie's box office performance.
+## Capabilities
+
+- `fetch_movie_data`: loads a JSON of movie data into the conversation.
+- `fetch_reviews`: loads a list of strings representing movie reviews into the conversation.
+
+Your task is to analyze movie box office performance by combining quantitative metrics with audience/critic sentiment.
+
+## Required Process
+
+1. ALWAYS fetch movie data first using `fetch_movie_data`
+2. ALWAYS fetch reviews using `fetch_reviews` 
+3. Analyze the sentiment and themes from reviews to understand audience reception
+4. Correlate audience reception with box office performance
 
 Follow these rules strictly:
+- You MUST use BOTH tools for every analysis
 - Base your reasoning ONLY on the provided data
 - Do NOT invent facts or external knowledge
+- Reviews provide critical insight into word-of-mouth, audience satisfaction, and long-term performance
 - Be concise but insightful
 - Focus on causal factors (why performance happened)
 - Avoid vague statements like "it depends" or "various factors"
 
 Structure your response exactly as follows:
 
-1. Performance Summary (1–2 sentences)
-2. Key Factors (bullet points, 3–6 items)
-3. Final Assessment (1–2 sentences with clear judgment)
+1. Performance Summary (1–2 sentences with revenue/budget figures)
+2. Audience Reception (2-3 sentences summarizing review sentiment and key themes)
+3. Key Factors (bullet points, 3–6 items - must include at least one factor based on reviews)
+4. Final Assessment (1–2 sentences with clear judgment)
 
 Each factor must clearly explain cause → effect."""
 
@@ -28,7 +43,12 @@ API_KEY = os.getenv("API_KEY")
 API_URL = os.getenv("API_URL")
 
 def fetch_movie_data(movie_id: int) -> MovieData:
+    """
+    Fetch structured movie data regarding movie with id <movie_id>
+    """
     response = requests.get(f"{API_URL}/movie/{movie_id}", headers={"Authorization": f"Bearer {API_KEY}"})
+
+    print("Fetching movie data...")
 
     if response.status_code != 200:
         raise Exception(f"Failed to fetch movie data: {response.status_code} - {response.text}")
@@ -47,7 +67,12 @@ def parse_movie_data(data: dict) -> MovieData:
     )
 
 def fetch_reviews(movie_id: int) -> list[MovieReview]:
+    """
+    Fetch list of strings representing reviews for movie with id <movie_id>
+    """
     response = requests.get(f"{API_URL}/movie/{movie_id}/reviews", headers={"Authorization": f"Bearer {API_KEY}"})
+
+    print("Fetching reviews...")
     if response.status_code != 200:
         raise Exception(f"Failed to fetch reviews: {response.status_code} - {response.text}")
     data = response.json()
