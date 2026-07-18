@@ -4,15 +4,17 @@ from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 import time
 
-from utils import fetch_movie_data, fetch_reviews, system_prompt
+from utils import fetch_movie_data, fetch_reviews, describe_performance, system_prompt
+from models import AnalysisResponse
 
 model = init_chat_model(model="gemma4:e2b", model_provider="ollama", temperature=0)
     
 
 agent = create_agent(
     model=model,
-    tools=[fetch_movie_data, fetch_reviews],
+    tools=[fetch_movie_data, fetch_reviews, describe_performance],
     system_prompt=system_prompt,
+    response_format=AnalysisResponse,
 )
 
 app = FastAPI()
@@ -37,10 +39,11 @@ def analyze(movie_id: int):
     result = agent.invoke({
         "messages": [{
             "role": "user",
-            "content": f"Provide a detailed box office performance analysis for the movie with movie_id:{movie_id}"
+            "content": f"Provide a detailed box office performance analysis for the movie with movie ID:{movie_id}"
         }]
     })
     end_time = time.time()
     
     print("Time taken for analysis:", end_time - start_time, "seconds")
-    return result["messages"][-1].content_blocks
+    print(result)
+    return result["structured_response"]

@@ -1,7 +1,8 @@
 import requests
 from dotenv import load_dotenv
 import os
-from models import MovieData, MovieReview
+from models import MovieData, MovieReview, Genre, ProductionCompany
+from langchain.tools import tool
 
 load_dotenv()
 
@@ -11,18 +12,20 @@ system_prompt = """You are a film industry analyst specializing in box office pe
 
 - `fetch_movie_data`: loads a JSON of movie data into the conversation.
 - `fetch_reviews`: loads a list of strings representing movie reviews into the conversation.
+- `describe_performance`: Describes the box office performance of a movie based on its budget and revenue.
 
-Your task is to analyze movie box office performance by combining quantitative metrics with audience/critic sentiment.
+Your task is to analyze movie box office performance by combining quantitative metrics with audience/critic sentiment. Utilize as much data available as possible to provide a comprehensive and insightful analysis.
 
 ## Required Process
 
 1. ALWAYS fetch movie data first using `fetch_movie_data`
 2. ALWAYS fetch reviews using `fetch_reviews` 
-3. Analyze the sentiment and themes from reviews to understand audience reception
-4. Correlate audience reception with box office performance
+3. Use `describe_performance` with the budget and revenue to categorize box office success
+4. Analyze the sentiment and themes from reviews to understand audience reception
+5. Correlate audience reception with box office performance
 
 Follow these rules strictly:
-- You MUST use BOTH tools for every analysis
+- You MUST use ALL THREE tools for every analysis
 - Base your reasoning ONLY on the provided data
 - Do NOT invent facts or external knowledge
 - Reviews provide critical insight into word-of-mouth, audience satisfaction, and long-term performance
@@ -32,19 +35,46 @@ Follow these rules strictly:
 
 Structure your response exactly as follows:
 
-1. Performance Summary (1–2 sentences with revenue/budget figures)
-2. Audience Reception (2-3 sentences summarizing review sentiment and key themes)
-3. Key Factors (bullet points, 3–6 items - must include at least one factor based on reviews)
-4. Final Assessment (1–2 sentences with clear judgment)
+1. Performance Summary (1–2 sentences with revenue/budget figures, was the movie a hit, flop, or somewhere in between?)
+2. Reasons (bullet points, 3–6 items - must include at least one factor based on reviews)
+4. Final Thoughts (1–2 sentences with clear judgment)
 
 Each factor must clearly explain cause → effect."""
 
 API_KEY = os.getenv("API_KEY")
 API_URL = os.getenv("API_URL")
 
+@tool
+def describe_performance(revenue: int, budget: int) -> str:
+    """
+    Categorizes box office performance based on revenue-to-budget ratio.
+    Returns: 'was a hit' (3x+), 'was a moderate success' (2-3x), 'broke-even' (1.5-2x), or 'underperformed' (<1.5x).
+    
+    Args:
+        revenue: Total worldwide box office revenue in US dollars
+        budget: Production budget in US dollars
+    """
+    if budget == 0:
+        return "Unknown"
+    
+    ratio = revenue / budget
+    if ratio >= 3.0:
+        return "was a hit"
+    elif ratio >= 2.0:
+        return "was a moderate success"
+    elif ratio >= 1.5:
+        return "broke-even"
+    else:
+        return "underperformed"
+
+@tool
 def fetch_movie_data(movie_id: int) -> MovieData:
     """
-    Fetch structured movie data regarding movie with id <movie_id>
+    Fetches comprehensive movie data including budget, revenue, ratings, genres, and production companies.
+    Foundation for box office analysis. ALWAYS call this first to establish baseline metrics.
+    
+    Args:
+        movie_id: The unique identifier for the movie (e.g., TMDB movie ID)
     """
     response = requests.get(f"{API_URL}/movie/{movie_id}", headers={"Authorization": f"Bearer {API_KEY}"})
 
@@ -56,6 +86,17 @@ def fetch_movie_data(movie_id: int) -> MovieData:
     data = response.json()
     return parse_movie_data(data)
 
+def parse_genre(data: dict) -> Genre:
+    return Genre(
+        name=data.get("name", "")
+    )
+
+def parse_production_company(data: dict) -> ProductionCompany:
+    return ProductionCompany(
+        name=data.get("name", ""),
+        origin_country=data.get("origin_country", "")
+    )
+
 def parse_movie_data(data: dict) -> MovieData:
     return MovieData(
         title=data.get("title", ""),
@@ -64,11 +105,20 @@ def parse_movie_data(data: dict) -> MovieData:
         rating=data.get("vote_average", 0.0),
         revenue=data.get("revenue", 0),
         overview=data.get("overview", ""),
+        popularity=data.get("popularity", 0),
+        genres=[parse_genre(genre) for genre in data.get("genres", [])],
+        production_companies=[parse_production_company(company) for company in data.get("production_companies", [])]
     )
 
+@tool
 def fetch_reviews(movie_id: int) -> list[MovieReview]:
     """
-    Fetch list of strings representing reviews for movie with id <movie_id>
+    Fetches audience and critic reviews for qualitative sentiment analysis.
+    Reveals audience satisfaction, word-of-mouth factors, and specific strengths/weaknesses.
+    ALWAYS call after fetch_movie_data to understand the 'why' behind performance.
+    
+    Args:
+        movie_id: The unique identifier for the movie (e.g., TMDB movie ID)
     """
     response = requests.get(f"{API_URL}/movie/{movie_id}/reviews", headers={"Authorization": f"Bearer {API_KEY}"})
 
@@ -86,24 +136,10 @@ def parse_reviews(data: list) -> list[MovieReview]:
             author=item.get("author", ""),
             content=item.get("content", ""),
         ))
-    return reviews
+    return reviews[:min(5, len(reviews))]
 
 def stringify_reviews(reviews: list[MovieReview]) -> str:
     review_str = ""
     for review in reviews[:min(5, len(reviews))]:  # Limit to first 5 reviews for brevity
         review_str += f"Review by {review.author}:\n{review.content}\n\n"
     return review_str.strip()
-
-def describe_performance(revenue: int, budget: int) -> str:
-    if budget == 0:
-        return "Unknown"
-    
-    ratio = revenue / budget
-    if ratio >= 3.0:
-        return "was a hit"
-    elif ratio >= 2.0:
-        return "was a moderate success"
-    elif ratio >= 1.5:
-        return "broke-even"
-    else:
-        return "underperformed"
