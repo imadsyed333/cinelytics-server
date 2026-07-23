@@ -25,21 +25,13 @@ Your task is to analyze movie box office performance by combining quantitative m
 5. Correlate audience reception with box office performance
 
 Follow these rules strictly:
-- You MUST use ALL THREE tools for every analysis
+- You MUST use ALL tools for every analysis
 - Base your reasoning ONLY on the provided data
 - Do NOT invent facts or external knowledge
 - Reviews provide critical insight into word-of-mouth, audience satisfaction, and long-term performance
 - Be concise but insightful
 - Focus on causal factors (why performance happened)
-- Avoid vague statements like "it depends" or "various factors"
-
-Structure your response exactly as follows:
-
-1. Performance Summary (1–2 sentences with revenue/budget figures, was the movie a hit, flop, or somewhere in between?)
-2. Reasons (bullet points, 3–6 items - must include at least one factor based on reviews)
-4. Final Thoughts (1–2 sentences with clear judgment)
-
-Each factor must clearly explain cause → effect."""
+- Avoid vague statements like "it depends" or "various factors"""
 
 API_KEY = os.getenv("API_KEY")
 API_URL = os.getenv("API_URL")
