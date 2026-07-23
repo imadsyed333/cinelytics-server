@@ -2,14 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
-from langchain.chat_models import init_chat_model
+from langchain_ollama import ChatOllama
 import time
 
 from utils import fetch_movie_data, fetch_reviews, describe_performance, system_prompt
 from models import AnalysisResponse
 
-model = init_chat_model(model="qwen2.5:7b", model_provider="ollama", temperature=0)
-    
+model = ChatOllama(model="gemma4:e2b", temperature=0, reasoning=False)
+structured_model = model.with_structured_output(AnalysisResponse)
 
 agent = create_agent(
     model=model,
