@@ -97,9 +97,6 @@ def parse_movie_data(data: dict) -> MovieData:
         rating=data.get("vote_average", 0.0),
         revenue=data.get("revenue", 0),
         overview=data.get("overview", ""),
-        popularity=data.get("popularity", 0),
-        genres=[parse_genre(genre) for genre in data.get("genres", [])],
-        production_companies=[parse_production_company(company) for company in data.get("production_companies", [])]
     )
 
 @tool

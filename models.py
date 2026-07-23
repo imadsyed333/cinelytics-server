@@ -14,9 +14,6 @@ class MovieData(BaseModel):
     revenue: float = Field(description="The total worldwide box office revenue in US dollars. Used to assess commercial success.")
     rating: float = Field(description="The average user rating (typically 0-10 scale). Indicates critical and audience reception quality.")
     overview: str = Field(description="A brief synopsis or description of the movie's plot and themes. Useful for understanding the movie's appeal.")
-    popularity: float = Field(description="A metric indicating the movie's current popularity and cultural relevance. Higher values suggest greater audience interest.")
-    production_companies: list[ProductionCompany] = Field(description="List of production companies involved in making the movie. Can indicate production scale and distribution reach.")
-    genres: list[Genre] = Field(description="List of genres the movie belongs to. Important for understanding target audience and market positioning.")
 
 class MovieReview(BaseModel):
     author: str = Field(description="The name or username of the review author.")
